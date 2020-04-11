@@ -1,6 +1,8 @@
 const { Router } = require('express')
 const { check, validationResult } = require('express-validator')
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const config = require('config')
 const User = require('../models/User')
 const router = Router()
 
@@ -67,7 +69,7 @@ router.post(
     '/login',
     [
         check('email', 'email is required').isEmail(),
-        check('password', 'password is required').isString()
+        check('password', 'password is required').exists()
     ],
     async (req, res) => {
         try {
@@ -106,12 +108,22 @@ router.post(
                 })
             }
 
-            //TODO: generate and return JWT tokens..
+            // 6. generate our JWT
+            const token = jwt.sign(
+                {
+                    userId: user.id
+                },
+                config.get('jwtSecret'),
+                {
+                    expiresIn: '1h'
+                }
+            )
 
-
-            // 6. notify about successful login
+            // 7. notify about successful login
             return res.status(200).json({
-                message: 'login successful'
+                message: 'login successful',
+                token: token,
+                userId: user.id
             })
         } catch (e) {
             console.log('/api/auth/register critical error', e)
@@ -119,8 +131,6 @@ router.post(
                 message: 'critical server error'
             })
         }
-
-
 
     })
 
